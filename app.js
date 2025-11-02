@@ -369,24 +369,60 @@ function createBubbleHeart(x, y) {
     }, 3000);
 }
 
-// 显示爱心形状文字（不使用弹窗框）
+// 检查点是否在爱心内部（更准确的判断）
+function isPointInHeart(x, y, centerX, centerY, size) {
+    // 将屏幕坐标转换为爱心参数坐标
+    const baseScale = size / 16;
+    const scaleX = baseScale * 0.9;
+    const scaleY = baseScale * 0.85;
+    
+    const relX = (x - centerX) / scaleX;
+    const relY = (y - centerY) / scaleY;
+    
+    // 使用参数方程判断：对于给定的(x,y)，是否存在t使得点在爱心上
+    // 使用迭代方法近似判断
+    const radius = Math.sqrt(relX * relX + relY * relY);
+    
+    // 如果距离中心太远，肯定不在爱心内
+    if (radius > 25) return false;
+    
+    // 计算该点的角度
+    const angle = Math.atan2(relY, relX);
+    const t = angle < 0 ? angle + 2 * Math.PI : angle;
+    
+    // 计算爱心在该角度下的理论半径
+    const heartX = 16 * Math.pow(Math.sin(t), 3);
+    const heartY = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+    const heartRadius = Math.sqrt(heartX * heartX + heartY * heartY);
+    
+    // 计算实际半径
+    const actualRadius = Math.sqrt(relX * relX + relY * relY);
+    
+    // 如果实际半径小于等于理论半径，则在爱心内部或边界上
+    // 使用0.85是为了填充内部，让文字更密集
+    return actualRadius <= heartRadius * 0.85;
+}
+
+// 显示爱心形状文字（填充式）
 function showHeartShapePopups() {
     closeAllPopups();
     heartShapeActive = true;
     
+    // 隐藏背景文字显示
+    const quoteDisplay = document.getElementById('quoteDisplay');
+    if (quoteDisplay) {
+        quoteDisplay.style.display = 'none';
+    }
+    
     const centerX = window.innerWidth / 2;
     const centerY = window.innerHeight / 2;
     
-    // 根据屏幕尺寸调整爱心大小（手机端优化）
     const isMobile = window.innerWidth < 768;
     const screenWidth = window.innerWidth;
     const screenHeight = window.innerHeight;
     
-    // 计算适合屏幕的爱心大小（确保完整显示在屏幕内）
-    const heartSize = Math.min(screenWidth * 0.8, screenHeight * 0.7, 500);
-    
-    // 生成更密集的爱心坐标点，确保形状完整
-    const heartPoints = getHeartShapePoints(centerX, centerY, heartSize, quotes.length);
+    // 计算适合屏幕的爱心大小
+    const heartSize = Math.min(screenWidth * 0.75, screenHeight * 0.65, 450);
     
     // 创建爱心文字容器
     const heartContainer = document.createElement('div');
@@ -403,67 +439,110 @@ function showHeartShapePopups() {
     `;
     document.body.appendChild(heartContainer);
     
+    // 生成填充爱心的网格点（更密集）
+    const gridSize = isMobile ? 20 : 25; // 更密集的网格
+    const fontSize = isMobile ? 
+        Math.max(8, Math.min(11, screenWidth / 30)) : 
+        Math.max(10, Math.min(14, screenWidth / 27));
+    
+    const heartPoints = [];
+    const padding = 10;
+    
+    // 在爱心区域内生成密集的点（网格扫描）
+    for (let y = padding; y < screenHeight - padding; y += gridSize) {
+        for (let x = padding; x < screenWidth - padding; x += gridSize) {
+            if (isPointInHeart(x, y, centerX, centerY, heartSize)) {
+                heartPoints.push({ x, y });
+            }
+        }
+    }
+    
+    // 补充随机点，确保爱心填充饱满（至少100个点）
+    const minPoints = isMobile ? 100 : 120;
+    let attempts = 0;
+    while (heartPoints.length < minPoints && attempts < 500) {
+        attempts++;
+        // 在爱心可能出现的区域随机生成点
+        const angle = Math.random() * 2 * Math.PI;
+        const radius = Math.random() * (heartSize / 2.5);
+        const x = centerX + Math.cos(angle) * radius * 0.75;
+        const y = centerY + Math.sin(angle) * radius * 0.85;
+        if (isPointInHeart(x, y, centerX, centerY, heartSize)) {
+            // 检查是否与现有点太近
+            const tooClose = heartPoints.some(p => 
+                Math.sqrt(Math.pow(p.x - x, 2) + Math.pow(p.y - y, 2)) < gridSize * 0.8
+            );
+            if (!tooClose) {
+                heartPoints.push({ x, y });
+            }
+        }
+    }
+    
+    // 打乱顺序，让文字随机出现
+    heartPoints.sort(() => Math.random() - 0.5);
+    
     let index = 0;
-    const batchSize = isMobile ? 3 : 5; // 每次显示的文字数量
-    const delay = isMobile ? 200 : 150; // 批次之间的延迟
+    const batchSize = isMobile ? 5 : 8; // 每次显示更多文字
+    const delay = isMobile ? 80 : 60; // 更快的显示速度
+    
+    // 准备文字数组（循环使用52句情话）
+    const textArray = [];
+    while (textArray.length < heartPoints.length) {
+        textArray.push(...quotes);
+    }
     
     function showNextBatch() {
-        if (!heartShapeActive || index >= quotes.length) {
+        if (!heartShapeActive || index >= heartPoints.length) {
             heartShapeActive = false;
             return;
         }
         
-        // 一次显示多个文字
-        const endIndex = Math.min(index + batchSize, quotes.length);
+        const endIndex = Math.min(index + batchSize, heartPoints.length);
         
         for (let i = index; i < endIndex; i++) {
             const point = heartPoints[i];
+            const textIndex = i % textArray.length;
+            const text = textArray[textIndex];
             
-            // 确保坐标在屏幕范围内
-            const x = Math.max(5, Math.min(point.x, screenWidth - 150));
-            const y = Math.max(5, Math.min(point.y, screenHeight - 30));
+            // 只显示文字的一部分（每1-3个字，随机）
+            const words = text.split('');
+            const wordCount = Math.floor(Math.random() * 3) + 1; // 1-3个字
+            const displayText = words.length > wordCount ? 
+                words.slice(0, wordCount).join('') : 
+                text;
             
-            // 创建文字元素
             const textElement = document.createElement('div');
             textElement.className = 'heart-text-item';
-            textElement.textContent = quotes[i];
+            textElement.textContent = displayText;
             
-            const colorIndex = i % popupColors.length;
+            const colorIndex = textIndex % popupColors.length;
             const textColor = popupColors[colorIndex];
             
-            // 根据屏幕大小动态调整字体
-            const fontSize = isMobile ? 
-                Math.max(10, Math.min(14, screenWidth / 25)) : 
-                Math.max(12, Math.min(18, screenWidth / 22));
-            
-            // 设置文字样式
             textElement.style.cssText = `
                 position: absolute;
-                left: ${x}px;
-                top: ${y}px;
+                left: ${point.x}px;
+                top: ${point.y}px;
                 color: ${textColor};
                 font-size: ${fontSize}px;
                 font-weight: bold;
-                text-shadow: 0 1px 3px rgba(0,0,0,0.2), 0 0 10px rgba(255,105,180,0.3);
+                text-shadow: 0 1px 2px rgba(0,0,0,0.3);
                 white-space: nowrap;
                 pointer-events: none;
-                animation: textFadeIn 0.4s ease-out;
+                animation: textFadeIn 0.3s ease-out;
                 z-index: 1000;
-                transform-origin: center;
             `;
             
             heartContainer.appendChild(textElement);
             
-            // 创建冒泡爱心（每个文字一个）
-            const offsetX = (Math.random() - 0.5) * 80;
-            const offsetY = (Math.random() - 0.5) * 80;
-            createBubbleHeart(x + offsetX, y + offsetY);
+            // 偶尔创建冒泡爱心
+            if (Math.random() > 0.9) {
+                createBubbleHeart(point.x, point.y);
+            }
         }
         
         index = endIndex;
         
-        // 继续下一批
-        if (heartShapeActive && index < quotes.length) {
+        if (heartShapeActive && index < heartPoints.length) {
             heartShapeTimer = setTimeout(showNextBatch, delay);
         }
     }
@@ -493,6 +572,12 @@ function closeAllPopups() {
     const heartContainer = document.getElementById('heartTextContainer');
     if (heartContainer) {
         heartContainer.remove();
+    }
+    
+    // 恢复背景文字显示
+    const quoteDisplay = document.getElementById('quoteDisplay');
+    if (quoteDisplay) {
+        quoteDisplay.style.display = 'flex';
     }
     
     // 清除冒泡爱心
