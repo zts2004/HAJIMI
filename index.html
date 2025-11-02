@@ -37,15 +37,24 @@
 
     <script src="app.js"></script>
     <script>
-        // Service Worker注册
+        // Service Worker注册（只在HTTPS或localhost环境下注册）
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                // 自动检测路径（支持GitHub Pages子目录）
-                const swPath = location.pathname.replace(/\/[^/]*$/, '') + '/sw.js';
-                navigator.serviceWorker.register(swPath)
-                    .then(registration => console.log('SW registered'))
-                    .catch(error => console.log('SW registration failed:', error));
-            });
+            // 检查是否为HTTPS或localhost（不包括file://协议）
+            const isSecureContext = location.protocol === 'https:' || 
+                                   location.hostname === 'localhost' || 
+                                   location.hostname === '127.0.0.1';
+            
+            if (isSecureContext) {
+                window.addEventListener('load', () => {
+                    // 自动检测路径（支持GitHub Pages子目录）
+                    const swPath = location.pathname.replace(/\/[^/]*$/, '') + '/sw.js';
+                    navigator.serviceWorker.register(swPath)
+                        .then(registration => console.log('SW registered'))
+                        .catch(error => console.log('SW registration failed:', error));
+                });
+            } else {
+                console.log('Service Worker skipped: not in secure context (HTTPS/localhost required)');
+            }
         }
     </script>
 </body>
