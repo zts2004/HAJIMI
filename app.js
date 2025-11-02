@@ -124,6 +124,75 @@ function setupEventListeners() {
             closeAllPopups();
         }
     });
+    
+    // 左划手势检测（移动端）
+    let touchStartX = 0;
+    let touchStartY = 0;
+    
+    document.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+    });
+    
+    document.addEventListener('touchend', (e) => {
+        if (touchStartX === 0) return;
+        
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+        
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = Math.abs(touchEndY - touchStartY);
+        
+        // 检测左划（从右向左滑动超过100px，且垂直移动小于50px）
+        if (deltaX < -100 && deltaY < 50) {
+            closeAllPopups();
+        }
+        
+        touchStartX = 0;
+        touchStartY = 0;
+    });
+    
+    // 摇一摇检测
+    let lastShakeTime = 0;
+    let lastX = 0, lastY = 0, lastZ = 0;
+    
+    if (window.DeviceMotionEvent) {
+        window.addEventListener('devicemotion', (e) => {
+            const acceleration = e.accelerationIncludingGravity;
+            if (!acceleration) return;
+            
+            const currentTime = Date.now();
+            const timeDifference = currentTime - lastShakeTime;
+            
+            if (timeDifference > 100) { // 防止频繁触发
+                const deltaX = Math.abs(lastX - acceleration.x);
+                const deltaY = Math.abs(lastY - acceleration.y);
+                const deltaZ = Math.abs(lastZ - acceleration.z);
+                
+                const shake = deltaX + deltaY + deltaZ;
+                
+                if (shake > 30) { // 摇动阈值
+                    closeAllPopups();
+                    lastShakeTime = currentTime;
+                }
+                
+                lastX = acceleration.x;
+                lastY = acceleration.y;
+                lastZ = acceleration.z;
+            }
+        });
+    }
+    
+    // 请求设备运动权限（iOS 13+）
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+        document.addEventListener('click', () => {
+            DeviceMotionEvent.requestPermission().then(response => {
+                if (response === 'granted') {
+                    console.log('设备运动权限已授予');
+                }
+            });
+        }, { once: true });
+    }
 }
 
 // 更新显示的情话
@@ -248,34 +317,8 @@ function closePopup(popup) {
     }, 300);
 }
 
-// 关闭所有弹窗
-function closeAllPopups() {
-    stopAutoPlay();
-    heartShapeActive = false;
-    
-    if (heartShapeTimer) {
-        clearTimeout(heartShapeTimer);
-        heartShapeTimer = null;
-    }
-    
-    // 关闭所有弹窗
-    popups.forEach(popup => {
-        if (popup.parentNode) {
-            popup.parentNode.removeChild(popup);
-        }
-    });
-    popups = [];
-    
-    // 清除冒泡爱心
-    bubbleHearts.forEach(bubble => {
-        if (bubble.parentNode) {
-            bubble.parentNode.removeChild(bubble);
-        }
-    });
-    bubbleHearts = [];
-}
 
-// 计算爱心形状坐标点
+// 计算爱心形状坐标点（适配文字显示）
 function getHeartShapePoints(centerX, centerY, size = 400, numPoints = 52) {
     const points = [];
     for (let i = 0; i < numPoints; i++) {
@@ -284,12 +327,12 @@ function getHeartShapePoints(centerX, centerY, size = 400, numPoints = 52) {
         const x = 16 * Math.pow(Math.sin(t), 3);
         const y = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
         
-        // 缩放
+        // 缩放（适配文字，不需要减去弹窗尺寸）
         const scaleX = size / 32;
         const scaleY = size / 28; // 更高的爱心
         
-        const px = centerX + x * scaleX - 200; // 减去弹窗宽度的一半
-        const py = centerY + y * scaleY - 50;  // 减去弹窗高度的一半
+        const px = centerX + x * scaleX;
+        const py = centerY + y * scaleY;
         
         points.push({ x: px, y: py });
     }
@@ -320,20 +363,36 @@ function createBubbleHeart(x, y) {
     }, 3000);
 }
 
-// 显示爱心形状弹窗
+// 显示爱心形状文字（不使用弹窗框）
 function showHeartShapePopups() {
     closeAllPopups();
     heartShapeActive = true;
     
     const centerX = window.innerWidth / 2;
-    const centerY = window.innerHeight / 2 - 50;
+    const centerY = window.innerHeight / 2;
     
-    // 根据屏幕尺寸调整爱心大小
-    const maxWidth = window.innerWidth - 400;
-    const maxHeight = window.innerHeight - 150;
-    const heartSize = Math.min(maxWidth * 0.7, maxHeight * 0.7, 600);
+    // 根据屏幕尺寸调整爱心大小（手机端适配）
+    const isMobile = window.innerWidth < 768;
+    const maxWidth = window.innerWidth * (isMobile ? 0.85 : 0.7);
+    const maxHeight = window.innerHeight * (isMobile ? 0.85 : 0.7);
+    const heartSize = Math.min(maxWidth, maxHeight, 600);
     
     const heartPoints = getHeartShapePoints(centerX, centerY, heartSize, quotes.length);
+    
+    // 创建爱心文字容器
+    const heartContainer = document.createElement('div');
+    heartContainer.id = 'heartTextContainer';
+    heartContainer.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 999;
+        pointer-events: none;
+        overflow: hidden;
+    `;
+    document.body.appendChild(heartContainer);
     
     let index = 0;
     
@@ -345,19 +404,39 @@ function showHeartShapePopups() {
         
         const point = heartPoints[index];
         // 确保坐标在屏幕范围内
-        const x = Math.max(0, Math.min(point.x, window.innerWidth - 400));
-        const y = Math.max(0, Math.min(point.y, window.innerHeight - 150));
+        const x = Math.max(10, Math.min(point.x, window.innerWidth - 200));
+        const y = Math.max(10, Math.min(point.y, window.innerHeight - 50));
+        
+        // 创建文字元素（不使用弹窗框）
+        const textElement = document.createElement('div');
+        textElement.className = 'heart-text-item';
+        textElement.textContent = quotes[index];
         
         const colorIndex = index % popupColors.length;
-        const bgColor = popupColors[colorIndex];
+        const textColor = popupColors[colorIndex];
         
-        createPopup(quotes[index], x, y, bgColor);
+        // 设置文字样式
+        textElement.style.cssText = `
+            position: absolute;
+            left: ${x}px;
+            top: ${y}px;
+            color: ${textColor};
+            font-size: ${isMobile ? '14px' : '16px'};
+            font-weight: bold;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            white-space: nowrap;
+            pointer-events: none;
+            animation: textFadeIn 0.5s ease-out;
+            z-index: 1000;
+        `;
+        
+        heartContainer.appendChild(textElement);
         
         // 创建冒泡爱心
         for (let i = 0; i < 3; i++) {
             const offsetX = Math.random() * 100 - 50;
             const offsetY = Math.random() * 100 - 50;
-            createBubbleHeart(x + 200 + offsetX, y + 50 + offsetY);
+            createBubbleHeart(x + offsetX, y + offsetY);
         }
         
         index++;
@@ -368,6 +447,39 @@ function showHeartShapePopups() {
     }
     
     showNext();
+}
+
+// 修改关闭所有弹窗函数，也清除爱心文字
+function closeAllPopups() {
+    stopAutoPlay();
+    heartShapeActive = false;
+    
+    if (heartShapeTimer) {
+        clearTimeout(heartShapeTimer);
+        heartShapeTimer = null;
+    }
+    
+    // 关闭所有弹窗
+    popups.forEach(popup => {
+        if (popup.parentNode) {
+            popup.parentNode.removeChild(popup);
+        }
+    });
+    popups = [];
+    
+    // 清除爱心文字容器
+    const heartContainer = document.getElementById('heartTextContainer');
+    if (heartContainer) {
+        heartContainer.remove();
+    }
+    
+    // 清除冒泡爱心
+    bubbleHearts.forEach(bubble => {
+        if (bubble.parentNode) {
+            bubble.parentNode.removeChild(bubble);
+        }
+    });
+    bubbleHearts = [];
 }
 
 // 工具函数：颜色变亮

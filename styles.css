@@ -195,6 +195,23 @@ header h1 {
     }
 }
 
+/* 爱心文字样式 */
+.heart-text-item {
+    position: absolute;
+    pointer-events: none;
+}
+
+@keyframes textFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
 /* 响应式设计 */
 @media (max-width: 480px) {
     header h1 {
