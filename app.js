@@ -490,8 +490,8 @@ function showHeartShapePopups() {
     // 生成填充爱心的网格点（非常密集，像图片中的效果）
     const gridSize = isMobile ? 12 : 15; // 非常密集的网格
     const baseFontSize = isMobile ? 
-        Math.max(10, Math.min(14, screenWidth / 25)) : 
-        Math.max(12, Math.min(18, screenWidth / 22));
+        Math.max(14, Math.min(20, screenWidth / 20)) : 
+        Math.max(16, Math.min(24, screenWidth / 18));
     
     const heartPoints = [];
     const padding = 5;
@@ -529,10 +529,22 @@ function showHeartShapePopups() {
     // 打乱顺序，让文字随机出现
     heartPoints.sort(() => Math.random() - 0.5);
     
-    // 准备文字数组（循环使用52句情话）
-    const textArray = [];
-    while (textArray.length < heartPoints.length) {
-        textArray.push(...quotes);
+    // 将所有52句情话拆分成单个字符，去掉空格和标点
+    let allChars = [];
+    quotes.forEach(quote => {
+        // 拆分成字符，过滤掉空格和常见标点
+        const chars = quote.split('').filter(char => {
+            // 保留中文字符、英文字母、数字，去掉空格和标点
+            return char.trim() !== '' && 
+                   !['，', '。', '、', '！', '？', '；', '：', ',', '.', '!', '?', ';', ':', ' '].includes(char);
+        });
+        allChars.push(...chars);
+    });
+    
+    // 如果字符不够，循环使用
+    const charArray = [];
+    while (charArray.length < heartPoints.length) {
+        charArray.push(...allChars);
     }
     
     // 立即显示所有文字（快速显示，像图片中的效果）
@@ -550,11 +562,11 @@ function showHeartShapePopups() {
         
         for (let i = index; i < endIndex; i++) {
             const point = heartPoints[i];
-            const textIndex = i % textArray.length;
-            const text = textArray[textIndex];
+            const charIndex = i % charArray.length;
+            const char = charArray[charIndex];
             
-            // 显示完整的句子
-            const displayText = text;
+            // 显示单个字符
+            const displayText = char;
             
             const textElement = document.createElement('div');
             textElement.className = 'heart-text-item';
@@ -571,19 +583,24 @@ function showHeartShapePopups() {
             // 随机旋转角度（-45度到+45度，像图片中的效果）
             const rotation = -45 + Math.random() * 90; // -45 到 +45 度
             
-            // 设置基础样式
+            // 设置基础样式（单个字符，居中显示）
             textElement.style.position = 'absolute';
-            textElement.style.left = point.x + 'px';
-            textElement.style.top = point.y + 'px';
+            textElement.style.left = (point.x - currentFontSize / 2) + 'px'; // 居中
+            textElement.style.top = (point.y - currentFontSize / 2) + 'px'; // 居中
             textElement.style.color = textColor;
             textElement.style.fontSize = currentFontSize + 'px';
             textElement.style.fontWeight = 'bold';
             textElement.style.textShadow = '0 1px 3px rgba(0,0,0,0.2)';
             textElement.style.whiteSpace = 'nowrap';
-            textElement.style.lineHeight = '1.2';
+            textElement.style.lineHeight = '1';
             textElement.style.pointerEvents = 'none';
             textElement.style.zIndex = '1000';
             textElement.style.textAlign = 'center';
+            textElement.style.width = currentFontSize + 'px';
+            textElement.style.height = currentFontSize + 'px';
+            textElement.style.display = 'flex';
+            textElement.style.alignItems = 'center';
+            textElement.style.justifyContent = 'center';
             textElement.style.transform = `rotate(${rotation}deg)`;
             textElement.style.transformOrigin = 'center center';
             textElement.style.opacity = '0';
