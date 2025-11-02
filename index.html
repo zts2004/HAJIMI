@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="52行情话弹窗 - 表达爱意的小程序">
+    <meta name="theme-color" content="#ffeef7">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="52行情话">
+    <title>💕 52行情话 💕 - © CAFUC张天顺</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💕 52行情话 💕</h1>
+        </header>
+
+        <div class="quote-display" id="quoteDisplay">
+            <p id="currentQuote">你是我生命中最美好的意外</p>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-pink" id="autoPlayBtn">▶ 自动播放</button>
+            <button class="btn btn-red" id="heartShapeBtn">💖 爱心形状</button>
+        </div>
+
+        <div class="copyright">
+            <p>© CAFUC张天顺 | 版权所有</p>
+        </div>
+    </div>
+
+    <!-- 弹窗容器 -->
+    <div id="popupContainer"></div>
+
+    <script src="app.js"></script>
+    <script>
+        // Service Worker注册
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                // 自动检测路径（支持GitHub Pages子目录）
+                const swPath = location.pathname.replace(/\/[^/]*$/, '') + '/sw.js';
+                navigator.serviceWorker.register(swPath)
+                    .then(registration => console.log('SW registered'))
+                    .catch(error => console.log('SW registration failed:', error));
+            });
+        }
+    </script>
+</body>
+</html>
+

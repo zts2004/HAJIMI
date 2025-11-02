@@ -1,0 +1,32 @@
+快速上传到GitHub的三种方法
+================================
+
+最简单：通过GitHub网页直接上传
+----------------------------
+1. 访问：https://github.com/zts2004/HAJIMI
+2. 点击"uploading an existing file"（如果仓库是空的）
+3. 拖拽上传这些文件：
+   - index.html
+   - app.js
+   - styles.css
+   - manifest.json
+   - sw.js
+   - README.md
+4. 填写提交信息并提交
+
+启用GitHub Pages（获得访问链接）
+----------------------------
+1. 仓库 → Settings → Pages
+2. Source选择 "main" 分支
+3. Save后等待几分钟
+4. 访问：https://zts2004.github.io/HAJIMI/
+
+生成短链接
+----------
+1. 使用 dwz.cn 或 url.cn
+2. 将长链接缩短
+3. 就可以在微信分享啦！
+
+详细说明请查看 GITHUB_UPLOAD.md
+
+

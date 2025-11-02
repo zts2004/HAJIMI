@@ -1,0 +1,44 @@
+{
+  "name": "52行情话弹窗",
+  "short_name": "52行情话",
+  "description": "52句精选情话，表达爱意的浪漫小程序",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffeef7",
+  "theme_color": "#ffeef7",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["entertainment", "lifestyle"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "自动播放",
+      "short_name": "自动播放",
+      "description": "自动播放所有情话",
+      "url": "/?action=autoplay",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "爱心形状",
+      "short_name": "爱心形状",
+      "description": "显示爱心形状弹窗",
+      "url": "/?action=heart",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
+
+
