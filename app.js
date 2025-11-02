@@ -318,24 +318,30 @@ function closePopup(popup) {
 }
 
 
-// 计算爱心形状坐标点（适配文字显示）
+// 计算爱心形状坐标点（优化版本，确保完美爱心形状）
 function getHeartShapePoints(centerX, centerY, size = 400, numPoints = 52) {
     const points = [];
+    const isMobile = window.innerWidth < 768;
+    
+    // 根据设备调整缩放比例，确保爱心比例正确
+    const baseScale = size / 16; // 基础缩放因子
+    const scaleX = baseScale * 0.9; // X方向稍微缩小，让爱心更紧凑
+    const scaleY = baseScale * 0.85; // Y方向缩放，控制高度
+    
     for (let i = 0; i < numPoints; i++) {
         const t = (2 * Math.PI * i) / numPoints;
-        // 爱心参数方程
+        
+        // 爱心参数方程（优化版本）
         const x = 16 * Math.pow(Math.sin(t), 3);
         const y = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
         
-        // 缩放（适配文字，不需要减去弹窗尺寸）
-        const scaleX = size / 32;
-        const scaleY = size / 28; // 更高的爱心
-        
+        // 计算实际坐标（相对于中心点）
         const px = centerX + x * scaleX;
         const py = centerY + y * scaleY;
         
         points.push({ x: px, y: py });
     }
+    
     return points;
 }
 
@@ -371,12 +377,15 @@ function showHeartShapePopups() {
     const centerX = window.innerWidth / 2;
     const centerY = window.innerHeight / 2;
     
-    // 根据屏幕尺寸调整爱心大小（手机端适配）
+    // 根据屏幕尺寸调整爱心大小（手机端优化）
     const isMobile = window.innerWidth < 768;
-    const maxWidth = window.innerWidth * (isMobile ? 0.85 : 0.7);
-    const maxHeight = window.innerHeight * (isMobile ? 0.85 : 0.7);
-    const heartSize = Math.min(maxWidth, maxHeight, 600);
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
     
+    // 计算适合屏幕的爱心大小（确保完整显示在屏幕内）
+    const heartSize = Math.min(screenWidth * 0.8, screenHeight * 0.7, 500);
+    
+    // 生成更密集的爱心坐标点，确保形状完整
     const heartPoints = getHeartShapePoints(centerX, centerY, heartSize, quotes.length);
     
     // 创建爱心文字容器
@@ -390,63 +399,76 @@ function showHeartShapePopups() {
         height: 100%;
         z-index: 999;
         pointer-events: none;
-        overflow: hidden;
+        overflow: visible;
     `;
     document.body.appendChild(heartContainer);
     
     let index = 0;
+    const batchSize = isMobile ? 3 : 5; // 每次显示的文字数量
+    const delay = isMobile ? 200 : 150; // 批次之间的延迟
     
-    function showNext() {
+    function showNextBatch() {
         if (!heartShapeActive || index >= quotes.length) {
             heartShapeActive = false;
             return;
         }
         
-        const point = heartPoints[index];
-        // 确保坐标在屏幕范围内
-        const x = Math.max(10, Math.min(point.x, window.innerWidth - 200));
-        const y = Math.max(10, Math.min(point.y, window.innerHeight - 50));
+        // 一次显示多个文字
+        const endIndex = Math.min(index + batchSize, quotes.length);
         
-        // 创建文字元素（不使用弹窗框）
-        const textElement = document.createElement('div');
-        textElement.className = 'heart-text-item';
-        textElement.textContent = quotes[index];
-        
-        const colorIndex = index % popupColors.length;
-        const textColor = popupColors[colorIndex];
-        
-        // 设置文字样式
-        textElement.style.cssText = `
-            position: absolute;
-            left: ${x}px;
-            top: ${y}px;
-            color: ${textColor};
-            font-size: ${isMobile ? '14px' : '16px'};
-            font-weight: bold;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            white-space: nowrap;
-            pointer-events: none;
-            animation: textFadeIn 0.5s ease-out;
-            z-index: 1000;
-        `;
-        
-        heartContainer.appendChild(textElement);
-        
-        // 创建冒泡爱心
-        for (let i = 0; i < 3; i++) {
-            const offsetX = Math.random() * 100 - 50;
-            const offsetY = Math.random() * 100 - 50;
+        for (let i = index; i < endIndex; i++) {
+            const point = heartPoints[i];
+            
+            // 确保坐标在屏幕范围内
+            const x = Math.max(5, Math.min(point.x, screenWidth - 150));
+            const y = Math.max(5, Math.min(point.y, screenHeight - 30));
+            
+            // 创建文字元素
+            const textElement = document.createElement('div');
+            textElement.className = 'heart-text-item';
+            textElement.textContent = quotes[i];
+            
+            const colorIndex = i % popupColors.length;
+            const textColor = popupColors[colorIndex];
+            
+            // 根据屏幕大小动态调整字体
+            const fontSize = isMobile ? 
+                Math.max(10, Math.min(14, screenWidth / 25)) : 
+                Math.max(12, Math.min(18, screenWidth / 22));
+            
+            // 设置文字样式
+            textElement.style.cssText = `
+                position: absolute;
+                left: ${x}px;
+                top: ${y}px;
+                color: ${textColor};
+                font-size: ${fontSize}px;
+                font-weight: bold;
+                text-shadow: 0 1px 3px rgba(0,0,0,0.2), 0 0 10px rgba(255,105,180,0.3);
+                white-space: nowrap;
+                pointer-events: none;
+                animation: textFadeIn 0.4s ease-out;
+                z-index: 1000;
+                transform-origin: center;
+            `;
+            
+            heartContainer.appendChild(textElement);
+            
+            // 创建冒泡爱心（每个文字一个）
+            const offsetX = (Math.random() - 0.5) * 80;
+            const offsetY = (Math.random() - 0.5) * 80;
             createBubbleHeart(x + offsetX, y + offsetY);
         }
         
-        index++;
+        index = endIndex;
         
+        // 继续下一批
         if (heartShapeActive && index < quotes.length) {
-            heartShapeTimer = setTimeout(showNext, 300);
+            heartShapeTimer = setTimeout(showNextBatch, delay);
         }
     }
     
-    showNext();
+    showNextBatch();
 }
 
 // 修改关闭所有弹窗函数，也清除爱心文字
