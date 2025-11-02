@@ -487,16 +487,16 @@ function showHeartShapePopups() {
     `;
     document.body.appendChild(heartContainer);
     
-    // 生成填充爱心的网格点（更密集）
-    const gridSize = isMobile ? 18 : 22; // 更密集的网格
-    const fontSize = isMobile ? 
-        Math.max(9, Math.min(12, screenWidth / 28)) : 
-        Math.max(11, Math.min(15, screenWidth / 25));
+    // 生成填充爱心的网格点（非常密集，像图片中的效果）
+    const gridSize = isMobile ? 12 : 15; // 非常密集的网格
+    const baseFontSize = isMobile ? 
+        Math.max(10, Math.min(14, screenWidth / 25)) : 
+        Math.max(12, Math.min(18, screenWidth / 22));
     
     const heartPoints = [];
-    const padding = 10;
+    const padding = 5;
     
-    // 在爱心区域内生成密集的点（网格扫描）
+    // 在爱心区域内生成非常密集的点（网格扫描）
     for (let y = padding; y < screenHeight - padding; y += gridSize) {
         for (let x = padding; x < screenWidth - padding; x += gridSize) {
             if (isPointInHeart(x, y, centerX, centerY, heartSize)) {
@@ -505,20 +505,20 @@ function showHeartShapePopups() {
         }
     }
     
-    // 补充随机点，确保爱心填充饱满（至少100个点）
-    const minPoints = isMobile ? 100 : 120;
+    // 补充更密集的随机点，确保爱心完全填充（像图片中那样密集）
+    const minPoints = isMobile ? 200 : 300;
     let attempts = 0;
-    while (heartPoints.length < minPoints && attempts < 500) {
+    while (heartPoints.length < minPoints && attempts < 1000) {
         attempts++;
         // 在爱心可能出现的区域随机生成点
         const angle = Math.random() * 2 * Math.PI;
-        const radius = Math.random() * (heartSize / 2.5);
+        const radius = Math.random() * (heartSize / 2.3);
         const x = centerX + Math.cos(angle) * radius * 0.75;
         const y = centerY + Math.sin(angle) * radius * 0.85;
         if (isPointInHeart(x, y, centerX, centerY, heartSize)) {
-            // 检查是否与现有点太近
+            // 检查是否与现有点太近（允许更近，更密集）
             const tooClose = heartPoints.some(p => 
-                Math.sqrt(Math.pow(p.x - x, 2) + Math.pow(p.y - y, 2)) < gridSize * 0.8
+                Math.sqrt(Math.pow(p.x - x, 2) + Math.pow(p.y - y, 2)) < gridSize * 0.6
             );
             if (!tooClose) {
                 heartPoints.push({ x, y });
@@ -529,15 +529,16 @@ function showHeartShapePopups() {
     // 打乱顺序，让文字随机出现
     heartPoints.sort(() => Math.random() - 0.5);
     
-    let index = 0;
-    const batchSize = isMobile ? 5 : 8; // 每次显示更多文字
-    const delay = isMobile ? 80 : 60; // 更快的显示速度
-    
     // 准备文字数组（循环使用52句情话）
     const textArray = [];
     while (textArray.length < heartPoints.length) {
         textArray.push(...quotes);
     }
+    
+    // 立即显示所有文字（快速显示，像图片中的效果）
+    let index = 0;
+    const batchSize = isMobile ? 15 : 20; // 每次显示更多文字
+    const delay = isMobile ? 30 : 20; // 非常快的显示速度
     
     function showNextBatch() {
         if (!heartShapeActive || index >= heartPoints.length) {
@@ -559,30 +560,44 @@ function showHeartShapePopups() {
             textElement.className = 'heart-text-item';
             textElement.textContent = displayText;
             
-            const colorIndex = textIndex % popupColors.length;
-            const textColor = popupColors[colorIndex];
+            // 随机颜色（从所有颜色中随机选择）
+            const randomColorIndex = Math.floor(Math.random() * popupColors.length);
+            const textColor = popupColors[randomColorIndex];
             
-            textElement.style.cssText = `
-                position: absolute;
-                left: ${point.x}px;
-                top: ${point.y}px;
-                color: ${textColor};
-                font-size: ${fontSize}px;
-                font-weight: bold;
-                text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-                white-space: normal;
-                max-width: ${isMobile ? '100px' : '120px'};
-                line-height: 1.3;
-                pointer-events: none;
-                animation: textFadeIn 0.3s ease-out;
-                z-index: 1000;
-                text-align: center;
-            `;
+            // 随机字体大小（0.7x - 1.8x，像图片中的效果）
+            const sizeMultiplier = 0.7 + Math.random() * 1.1; // 0.7 到 1.8
+            const currentFontSize = baseFontSize * sizeMultiplier;
+            
+            // 随机旋转角度（-45度到+45度，像图片中的效果）
+            const rotation = -45 + Math.random() * 90; // -45 到 +45 度
+            
+            // 设置基础样式
+            textElement.style.position = 'absolute';
+            textElement.style.left = point.x + 'px';
+            textElement.style.top = point.y + 'px';
+            textElement.style.color = textColor;
+            textElement.style.fontSize = currentFontSize + 'px';
+            textElement.style.fontWeight = 'bold';
+            textElement.style.textShadow = '0 1px 3px rgba(0,0,0,0.2)';
+            textElement.style.whiteSpace = 'nowrap';
+            textElement.style.lineHeight = '1.2';
+            textElement.style.pointerEvents = 'none';
+            textElement.style.zIndex = '1000';
+            textElement.style.textAlign = 'center';
+            textElement.style.transform = `rotate(${rotation}deg)`;
+            textElement.style.transformOrigin = 'center center';
+            textElement.style.opacity = '0';
+            
+            // 使用requestAnimationFrame来设置动画，确保旋转和缩放同时生效
+            requestAnimationFrame(() => {
+                textElement.style.transition = 'opacity 0.2s ease-out';
+                textElement.style.opacity = '1';
+            });
             
             heartContainer.appendChild(textElement);
             
-            // 偶尔创建冒泡爱心
-            if (Math.random() > 0.9) {
+            // 偶尔创建冒泡爱心（减少频率，不干扰文字）
+            if (Math.random() > 0.95) {
                 createBubbleHeart(point.x, point.y);
             }
         }
