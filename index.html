@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>萝卜纸巾</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>萝卜纸巾</h1>
+        
+        <div class="selection-area">
+            <h2>请选择物品：</h2>
+            <div class="buttons">
+                <button id="luoboBtn" class="item-btn">
+                    <span class="emoji">🥕</span>
+                    <span>萝卜</span>
+                </button>
+                <button id="zhijinBtn" class="item-btn">
+                    <span class="emoji">🧻</span>
+                    <span>纸巾</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="game-area">
+            <div class="cat-container">
+                <img id="catImage" src="cat.png" alt="小猫" class="cat-image">
+                <div class="paw-left"></div>
+                <div class="paw-right"></div>
+            </div>
+            
+            <div class="items-area">
+                <div class="item" id="luoboItem" data-item="luobo">
+                    <img src="luobo.png" alt="萝卜" class="item-image">
+                </div>
+                <div class="item" id="zhijinItem" data-item="zhijin">
+                    <img src="zhijin.png" alt="纸巾" class="item-image">
+                </div>
+            </div>
+        </div>
+
+        <div id="successMessage" class="success-message hidden">
+            <div class="message-content">
+                <span class="success-emoji">🎉</span>
+                <h2>真棒！</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- 音频文件 -->
+    <audio id="luoboAudio" src="audio/luobo.mp3" preload="auto"></audio>
+    <audio id="zhijinAudio" src="audio/zhijin.mp3" preload="auto"></audio>
+    <audio id="successAudio" src="audio/success.mp3" preload="auto"></audio>
+
+    <script src="script.js"></script>
+    
+    <footer class="copyright">
+        <p>© 2024 cafucZTS</p>
+    </footer>
+</body>
+</html>
+
